@@ -1,0 +1,5 @@
+# Credenciales — nunca commitear
+.env
+# Cache de Python
+__pycache__/
+*.pyc

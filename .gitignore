@@ -1,0 +1,16 @@
+# Credenciales — nunca commitear
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Salidas de la migración
+migration/out/
+
+# macOS / editores
+.DS_Store
+*.swp

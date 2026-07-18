@@ -1,0 +1,37 @@
+{
+  "name": "Geus_ISP_DB migration (MSSQL -> PostgreSQL, Python)",
+
+  // Imagen con Python + unixODBC + ODBC Driver 18 + pyodbc/psycopg ya instalados.
+  // context ".." = raiz del repo, para que el Dockerfile pueda COPY migration/requirements.txt.
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+
+  // El devcontainer se une a la red bridge por defecto de Docker, donde ya corren
+  // geus_mssql_2022 (172.17.0.x) y geus-postgres (172.17.0.x), y los alcanza por IP.
+  // (MSSQL/TDS se cuelga via host.docker.internal en Docker Desktop; por IP del bridge, no.)
+  "runArgs": ["--network=bridge"],
+
+  // Corre en el HOST antes de crear/arrancar el contenedor: resuelve las IPs
+  // actuales de los contenedores de BD en la red bridge y las escribe en
+  // migration/.env (las IPs del bridge no son estables entre reinicios).
+  "initializeCommand": "bash .devcontainer/host-resolve-db-ips.sh",
+
+  // Verifica los prerrequisitos una vez creado el contenedor (no falla el arranque).
+  "postCreateCommand": "python migration/check_requirements.py || true",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.terminal.activateEnvironment": false
+      }
+    }
+  },
+
+  "remoteUser": "vscode"
+}

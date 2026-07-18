@@ -1,0 +1,7 @@
+# Dependencias del toolkit de migracion MSSQL -> PostgreSQL (instalar en un venv).
+#   python -m venv .venv
+#   .venv/bin/pip install -r requirements.txt        # Windows: .venv\Scripts\pip
+#
+# pyodbc requiere el "ODBC Driver 18 for SQL Server" (o 17) instalado en el SO.
+pyodbc>=5.0
+psycopg[binary]>=3.1
