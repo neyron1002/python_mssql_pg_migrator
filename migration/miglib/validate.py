@@ -19,6 +19,8 @@ Las 24 VISTAS quedan fuera (solo tablas base). Devuelve True si todo cuadra.
 """
 from __future__ import annotations
 
+import csv
+import os
 from decimal import Decimal
 
 from . import config
@@ -164,9 +166,99 @@ def _print_report(common, only_src, only_tgt, mismatches):
     return ok
 
 
+# ------------------------------------------------------------- detalle (--detail)
+def _detail_rows(plan, src, tgt):
+    """Filas granulares (una por tabla+metrica) origen vs destino, con estado.
+
+    Devuelve [(tabla, metrica, origen, destino, estado)] para TODAS las metricas
+    del plan (no solo las que discrepan) -> evidencia completa por tabla.
+    """
+    rows = []
+    for t, summ, pk in plan:
+        metrics = ["rowcount"]
+        metrics += ["sum:" + name for name, _ in summ]
+        for name in pk:
+            metrics += ["pkmin:" + name, "pkmax:" + name]
+        for metric in metrics:
+            sv = src.get((t, metric))
+            tv = tgt.get((t, metric))
+            if (t, "ERROR") in src:
+                estado = "ERROR-ORIGEN"
+            elif sv is None or tv is None:
+                estado = "AUSENTE"
+            elif sv == tv:
+                estado = "OK"
+            else:
+                estado = "DIFF"
+            rows.append((t, metric,
+                         "-" if sv is None else str(sv),
+                         "-" if tv is None else str(tv),
+                         estado))
+    return rows
+
+
+def _print_detail(plan, detail_rows):
+    """Resumen legible por-tabla en consola (una linea por tabla base)."""
+    by_tbl = {}
+    for t, metric, sv, tv, estado in detail_rows:
+        d = by_tbl.setdefault(t, {"rc": ("?", "?"), "sums": [0, 0],
+                                  "pkmin": None, "pkmax": None, "diff": False})
+        if estado in ("DIFF", "AUSENTE", "ERROR-ORIGEN"):
+            d["diff"] = True
+        if metric == "rowcount":
+            d["rc"] = (sv, tv)
+        elif metric.startswith("sum:"):
+            d["sums"][1] += 1
+            if estado == "OK":
+                d["sums"][0] += 1
+        elif metric.startswith("pkmin:"):
+            d["pkmin"] = tv
+        elif metric.startswith("pkmax:"):
+            d["pkmax"] = tv
+
+    print("\n" + "=" * 72)
+    print("DETALLE POR TABLA  (origen=destino)")
+    print("=" * 72)
+    print("  %-38s %-21s %-9s %-17s %s"
+          % ("tabla", "filas", "sumas", "PK rango", "estado"))
+    print("  " + "-" * 96)
+    for t in sorted(by_tbl):
+        d = by_tbl[t]
+        so, st = d["rc"]
+        filas = ("%s = %s" % (so, st)) if so == st else ("%s != %s" % (so, st))
+        sums = ("%d/%d" % (d["sums"][0], d["sums"][1])) if d["sums"][1] else "-"
+        if d["pkmin"] not in (None, "(empty)"):
+            pkr = "%s..%s" % (d["pkmin"], d["pkmax"])
+        else:
+            pkr = "-"
+        estado = "DIFF" if d["diff"] else "OK"
+        print("  %-38.38s %-21s %-9s %-17.17s %s" % (t, filas, sums, pkr, estado))
+
+
+def _write_csv(detail_rows, path):
+    """Vuelca todas las metricas (evidencia archivable) a un CSV."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        w.writerow(["tabla", "metrica", "origen", "destino", "estado"])
+        for row in detail_rows:
+            w.writerow(row)
+    return path
+
+
+def _out_dir():
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # migration/
+    return os.path.join(here, "out")
+
+
 # ------------------------------------------------------------------------- API
-def validate():
-    """Genera ambos reportes, compara e imprime. Devuelve True si todo cuadra."""
+def validate(detail=False):
+    """Genera ambos reportes, compara e imprime. Devuelve True si todo cuadra.
+
+    Con detail=True imprime ademas una tabla por-tabla (filas/sumas/PK, siempre,
+    haya o no discrepancias) y vuelca todas las metricas a out/validation_report.csv
+    como evidencia archivable.
+    """
     pg = config.connect_pg()
     try:
         plan = _pg_plan(pg)
@@ -181,4 +273,12 @@ def validate():
         mssql.close()
 
     common, only_src, only_tgt, mismatches = _compare(src, tgt)
-    return _print_report(common, only_src, only_tgt, mismatches)
+    ok = _print_report(common, only_src, only_tgt, mismatches)
+
+    if detail:
+        rows = _detail_rows(plan, src, tgt)
+        _print_detail(plan, rows)
+        csv_path = _write_csv(rows, os.path.join(_out_dir(), "validation_report.csv"))
+        print("\n==> Evidencia detallada (%d metricas) escrita en: %s"
+              % (len(rows), csv_path))
+    return ok

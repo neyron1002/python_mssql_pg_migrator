@@ -58,6 +58,8 @@ def build_parser():
     ap.add_argument("--batch", type=int, default=5000, help="filas por lote de lectura MSSQL (default 5000)")
     ap.add_argument("--no-truncate", action="store_true", help="no truncar el destino antes de copiar")
     ap.add_argument("--no-reset-sequences", action="store_true", help="no re-sincronizar secuencias al final")
+    ap.add_argument("--detail", action="store_true",
+                    help="con --validate: imprime detalle por tabla y escribe out/validation_report.csv")
     ap.add_argument("--env-file", default="", help="ruta a un .env (default: .env junto a este script)")
     return ap
 
@@ -92,7 +94,7 @@ def main(argv=None):
 
     if do_validate:
         print()
-        ok = validate.validate()
+        ok = validate.validate(detail=args.detail)
         return 0 if ok else 1
 
     return 0

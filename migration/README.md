@@ -97,13 +97,22 @@ cp .env.example .env                             # Windows: Copy-Item .env.examp
 .venv/bin/python migrate.py --all                # esquema + datos + validación
 .venv/bin/python migrate.py --schema --fresh     # DROP+CREATE de la base PG + DDL
 .venv/bin/python migrate.py --data               # solo copiar datos + secuencias
-.venv/bin/python migrate.py --validate           # solo validar
+.venv/bin/python migrate.py --validate           # solo validar (resumen PASS/FAIL)
+.venv/bin/python migrate.py --validate --detail  # + tabla por-tabla + out/validation_report.csv
 .venv/bin/python migrate.py --data --tables Country,State   # subconjunto de tablas
 ```
 
 Opciones adicionales de `--data`: `--no-truncate` (no vaciar el destino antes),
 `--no-reset-sequences` (no re-sincronizar secuencias), `--batch N` (filas por lote
 de lectura, default 5000). `--env-file RUTA` usa otro `.env`.
+
+**`--detail` (con `--validate`)**: por defecto la validación solo imprime el
+resumen (tablas en común / OK / con discrepancia) y el detalle **solo** cuando hay
+discrepancias. Con `--detail` imprime **siempre** una línea por tabla (filas
+origen=destino, sumas OK, rango de PK, estado) y vuelca **todas** las métricas
+(rowcount + `sum:*` + `pkmin/pkmax:*`) a `out/validation_report.csv` como evidencia
+archivable — útil para adjuntar la prueba de que cada tabla cuadró, no solo el
+veredicto.
 
 ### Topología típica (Windows Server)
 
