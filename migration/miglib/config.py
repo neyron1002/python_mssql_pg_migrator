@@ -53,10 +53,39 @@ def _guid_converter(value):
     return uuid.UUID(str(value))
 
 
+def pick_mssql_driver(pyodbc):
+    """Elige el driver ODBC de SQL Server a usar.
+
+    Si MSSQL_ODBC_DRIVER esta definido, se respeta tal cual (pero se avisa si no
+    esta instalado). Si no, se autoselecciona entre los instalados: prefiere el
+    18, luego el 17, luego cualquier "SQL Server". Evita el IM002 cuando la
+    maquina tiene el 17 pero el codigo pedia el 18 por defecto.
+    """
+    installed = list(pyodbc.drivers())
+    forced = os.environ.get("MSSQL_ODBC_DRIVER")
+    if forced:
+        if forced not in installed:
+            sys.stderr.write(
+                "AVISO: MSSQL_ODBC_DRIVER='%s' no esta entre los drivers ODBC "
+                "instalados (%s). Se intentara igual.\n"
+                % (forced, ", ".join(installed) or "ninguno"))
+        return forced
+    sqlsrv = [d for d in installed if "SQL Server" in d]
+    for pref in ("ODBC Driver 18 for SQL Server", "ODBC Driver 17 for SQL Server"):
+        if pref in sqlsrv:
+            return pref
+    if sqlsrv:
+        return sqlsrv[0]
+    sys.exit(
+        "ERROR: no hay ningun 'ODBC Driver for SQL Server' instalado (drivers "
+        "ODBC vistos: %s). Instale el 'ODBC Driver 18 for SQL Server' (o 17) y/o "
+        "defina MSSQL_ODBC_DRIVER en el .env." % (", ".join(installed) or "ninguno"))
+
+
 def connect_mssql():
     """Conexion al ORIGEN MS SQL Server via pyodbc."""
     import pyodbc  # import perezoso: la ruta PG-only no lo necesita
-    drv = os.environ.get("MSSQL_ODBC_DRIVER", "ODBC Driver 18 for SQL Server")
+    drv = pick_mssql_driver(pyodbc)
     extra = os.environ.get("MSSQL_ODBC_EXTRA", "TrustServerCertificate=yes;Encrypt=no")
     cs = (
         "DRIVER={%s};SERVER=%s,%s;DATABASE=%s;UID=%s;PWD=%s;%s"
