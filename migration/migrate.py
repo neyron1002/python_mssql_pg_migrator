@@ -7,7 +7,8 @@ depende de psql, sqlcmd ni pgloader:
   --schema     crea/recrea el esquema PG aplicando el DDL 00..03 (via psycopg)
   --data       copia los datos MSSQL->PG preservando PK + re-sincroniza secuencias
   --validate   reporte de integridad ORIGEN vs DESTINO (conteos, sumas, rango de PK)
-  --all        las tres etapas en orden
+  --all        las tres etapas en orden (IMPLICA --fresh: recrea la base, para poder
+               re-ejecutar sobre una base ya poblada sin chocar con el esquema previo)
   --fresh      junto con --schema: DROP + CREATE de la base PG (locale ICU es-ES)
 
 Pensado para ejecutarse contra localhost (un restore de Geus_ISP_DB en MSSQL + un
@@ -49,7 +50,8 @@ def build_parser():
         prog="migrate.py",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="Migracion de datos Geus_ISP_DB MSSQL -> PostgreSQL con validacion integral (100% Python).")
-    ap.add_argument("--all", action="store_true", help="esquema + datos + validacion")
+    ap.add_argument("--all", action="store_true",
+                    help="esquema + datos + validacion (migracion limpia: IMPLICA --fresh, recrea la base)")
     ap.add_argument("--schema", action="store_true", help="(re)crear el esquema PG (DDL 00..03)")
     ap.add_argument("--data", action="store_true", help="copiar datos + re-sincronizar secuencias")
     ap.add_argument("--validate", action="store_true", help="validar integridad origen vs destino")
@@ -75,13 +77,21 @@ def main(argv=None):
     do_data = args.all or args.data
     do_validate = args.all or args.validate
 
+    # --all es una migracion LIMPIA de punta a punta: recrea la base (DROP+CREATE)
+    # antes del esquema. El DDL 00..03 se aplica sobre una base vacia POR DISENO
+    # (usa CREATE ... sin IF NOT EXISTS, y 00_init dropea la collation), asi que
+    # re-aplicarlo sobre una base ya poblada falla. Por eso --all implica --fresh.
+    # Para control fino sobre una base existente use las etapas sueltas
+    # (--schema/--data), agregando --fresh si necesita recrear la base.
+    fresh = args.fresh or args.all
+
     if not (do_schema or do_data or do_validate):
         ap.print_help()
         print("\nNada que hacer. Elija al menos una etapa: --all | --schema | --data | --validate")
         return 2
 
     if do_schema:
-        schema.apply_schema(fresh=args.fresh)
+        schema.apply_schema(fresh=fresh)
 
     if do_data:
         tables = [t for t in args.tables.split(",") if t.strip()] or None
