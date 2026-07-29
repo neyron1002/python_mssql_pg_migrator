@@ -15,6 +15,11 @@ destino. Todo va por `psycopg` (v3) + `pyodbc`: **no depende de `psql`, `sqlcmd`
 > Pensado como paso previo a pruebas manuales en un sandbox pre-producción.
 > **No apunta a producción.**
 
+**En una frase:** corre en el propio **servidor Windows**, es **gratis** y **seguro**,
+no necesita `pg_dump` ni `pgloader` (que en Windows suelen exigir **compilar desde
+fuente**), y migra bases del orden de **10 GB en 4–5 minutos**, **sin pérdida** y con
+**validación tabla a tabla**.
+
 ---
 
 ## ¿Por qué este toolkit?
@@ -31,6 +36,26 @@ destino. Todo va por `psycopg` (v3) + `pyodbc`: **no depende de `psql`, `sqlcmd`
 - **Escaping seguro** vía el protocolo **COPY** de psycopg: texto libre y blobs JSON
   viajan intactos.
 - **Cronómetro por etapa y por tabla**, con un "RESUMEN DE TIEMPOS" al final.
+
+## Gratis, seguro y pensado para el servidor Windows
+
+Está hecho para **correr directamente en el servidor** (típicamente Windows Server)
+donde ya viven los motores, conectándose por red a `localhost`. Eso lo hace, en la
+práctica:
+
+- **Sin binarios externos que instalar ni compilar.** Solo Python + `pip install`
+  (`psycopg` + `pyodbc`). Las herramientas cross-engine habituales (p. ej.
+  **`pgloader`**) suelen exigir **compilar desde fuente** (SBCL y una cadena de
+  dependencias frágil) en Windows; y **`pg_dump`/`pg_restore` ni siquiera aplican**,
+  son PostgreSQL → PostgreSQL, no MSSQL → PostgreSQL.
+- **Gratis y abierto.** Licencia MIT, sin costo de licencia ni servicios de terceros.
+- **Seguro por diseño.** Los datos van **directo motor → motor** por la conexión
+  local: **no se escriben dumps ni CSV intermedios** en disco y nada sale de la
+  máquina. El protocolo **COPY** de psycopg escapa texto/JSON de forma segura.
+- **Rápido.** En pruebas sobre el servidor destino, bases del orden de **10 GB** se
+  migran en **~4–5 minutos** (COPY por lotes; depende de hardware y red).
+- **Sin pérdida y verificable.** `--validate` compara conteos, sumas numéricas
+  exactas, rango de PK y paridad de strings **tabla a tabla**, con exit code `0`/`1`.
 
 ## Cómo funciona
 
@@ -113,6 +138,12 @@ Apunta `DDL_DIR` (en el `.env`) a una carpeta con **cuatro archivos**, que se ap
 Si no defines `DDL_DIR`, el default es `../ddl` (carpeta hermana de `migration/`).
 `check_requirements.py` verifica que los cuatro existan.
 
+> **¿Prefieres verlo funcionando ya?** El repo trae un DDL de ejemplo en
+> [`postgres-sample/sample_shop/`](postgres-sample/) (una tiendita con los cuatro
+> archivos del contrato). Apunta `DDL_DIR=../postgres-sample/sample_shop` y corre
+> `migrate.py --schema --fresh` para crear el esquema destino de una. Ver
+> [`postgres-sample/README.md`](postgres-sample/README.md).
+
 > **¿De dónde sale ese DDL?** De tu propio modelo/esquema. Si tu app usa EF Core con
 > Npgsql, puedes generarlo desde el modelo para paridad exacta con el runtime; si no,
 > tradúcelo de tu esquema T-SQL. El toolkit solo lo **aplica** y **valida**.
@@ -176,6 +207,7 @@ Con `--detail`, además de la consola, vuelca todas las métricas a
 │   ├── .env.example         # plantilla de configuración
 │   └── miglib/              # paquete de soporte (config, schema, etl, validate, timing)
 ├── .devcontainer/           # entorno de desarrollo reproducible (opcional)
+├── postgres-sample/         # DDL de EJEMPLO (sample_shop) para probar el contrato
 └── ddl/                     # ← TU DDL 00..03 (no versionado; lo provees tú, o usa DDL_DIR)
 ```
 
