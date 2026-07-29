@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<!--
+  GitHub Page de presentacion del proyecto.
+  Para servir esta pagina: Settings > Pages > Deploy from a branch > main > / (root).
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mssql2pg — Migración MS SQL Server → PostgreSQL (100% Python)</title>
+<meta name="description" content="Toolkit 100% Python, agnóstico a la base, para migrar datos de MS SQL Server a PostgreSQL 18 y validar la integridad tabla a tabla.">
+<style>
+  :root {
+    --bg: #ffffff; --bg-soft: #f5f7fa; --bg-card: #ffffff;
+    --fg: #1a2233; --fg-soft: #55617a; --border: #e2e8f0;
+    --accent: #2f6df6; --accent-2: #14b8a6; --code-bg: #0f172a; --code-fg: #e2e8f0;
+    --shadow: 0 1px 3px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b0f19; --bg-soft: #0f1626; --bg-card: #131b2c;
+      --fg: #e6ebf5; --fg-soft: #93a1bd; --border: #223049;
+      --accent: #5b8cff; --accent-2: #2dd4bf; --code-bg: #060a13; --code-fg: #d7e0f0;
+      --shadow: 0 1px 3px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+  code, pre { font-family: "SF Mono", ui-monospace, "Cascadia Code", Consolas, "Liberation Mono", monospace; }
+
+  /* Hero */
+  header.hero {
+    background:
+      radial-gradient(1200px 400px at 80% -10%, rgba(47,109,246,.18), transparent 60%),
+      radial-gradient(900px 380px at 0% 0%, rgba(20,184,166,.14), transparent 55%);
+    border-bottom: 1px solid var(--border);
+    padding: 64px 0 52px;
+  }
+  .eyebrow {
+    display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--accent-2); margin-bottom: 14px;
+  }
+  h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.1; margin: 0 0 14px; letter-spacing: -0.02em; }
+  h1 .grad {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .lead { font-size: 19px; color: var(--fg-soft); max-width: 42em; margin: 0 0 26px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
+  .badge {
+    font-size: 12.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+    background: var(--bg-card); border: 1px solid var(--border); color: var(--fg-soft);
+  }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px;
+    padding: 11px 20px; border-radius: 10px; border: 1px solid transparent; cursor: pointer;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { text-decoration: none; filter: brightness(1.05); }
+  .btn-ghost { background: transparent; border-color: var(--border); color: var(--fg); }
+  .btn-ghost:hover { text-decoration: none; background: var(--bg-soft); }
+
+  /* Sections */
+  section { padding: 52px 0; border-bottom: 1px solid var(--border); }
+  h2 { font-size: 26px; letter-spacing: -0.01em; margin: 0 0 6px; }
+  .section-sub { color: var(--fg-soft); margin: 0 0 28px; }
+
+  /* Feature grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; box-shadow: var(--shadow);
+  }
+  .card h3 { margin: 0 0 6px; font-size: 16.5px; }
+  .card p { margin: 0; color: var(--fg-soft); font-size: 14.5px; }
+  .ic { font-size: 22px; line-height: 1; margin-bottom: 12px; display: block; }
+
+  /* Steps */
+  .steps { display: grid; gap: 14px; }
+  .step { display: grid; grid-template-columns: 44px 1fr; gap: 16px; align-items: start;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+  .step .n {
+    width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+    font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  }
+  .step code { background: var(--bg-soft); padding: 1px 6px; border-radius: 6px; font-size: 13px; }
+  .step p { margin: 4px 0 0; color: var(--fg-soft); font-size: 14.5px; }
+
+  /* Code block */
+  pre {
+    background: var(--code-bg); color: var(--code-fg); padding: 18px 20px; border-radius: 12px;
+    overflow-x: auto; font-size: 13.5px; line-height: 1.7; border: 1px solid var(--border);
+  }
+  pre .c { color: #7c8aa5; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--fg-soft); font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; }
+  td code { background: var(--bg-soft); padding: 1px 6px; border-radius: 6px; font-size: 13px; white-space: nowrap; }
+
+  footer { padding: 40px 0 60px; color: var(--fg-soft); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">100% Python · agnóstico a la base</span>
+    <h1>Migra de <span class="grad">MS SQL Server</span> a <span class="grad">PostgreSQL</span><br>y valida la integridad</h1>
+    <p class="lead">
+      Toolkit en Python para copiar los datos de <em>cualquier</em> base MSSQL a
+      PostgreSQL 18 y verificar, tabla a tabla, que todo migró intacto. Sin
+      <code>psql</code>, <code>sqlcmd</code> ni <code>pgloader</code>: solo
+      <code>psycopg</code> + <code>pyodbc</code>.
+    </p>
+    <div class="badges">
+      <span class="badge">Licencia MIT</span>
+      <span class="badge">Python 3.8+</span>
+      <span class="badge">PostgreSQL 18 · ICU</span>
+      <span class="badge">Schema-driven</span>
+      <span class="badge">Exit code 0/1 · CI-friendly</span>
+    </div>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/neyron1002/python_mssql_pg_migrator">★ Ver en GitHub</a>
+      <a class="btn btn-ghost" href="#empezar">Cómo empezar</a>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>¿Por qué usarlo?</h2>
+    <p class="section-sub">Copiar datos es fácil; garantizar que migraron bien, no. Esto hace ambas cosas.</p>
+    <div class="grid">
+      <div class="card"><span class="ic">🐍</span><h3>Cero CLIs externas</h3><p>Solo Python y dos librerías. Nada de <code>psql</code>, <code>bcp</code>, <code>pgloader</code> ni CSVs intermedios.</p></div>
+      <div class="card"><span class="ic">🧩</span><h3>Agnóstico a la base</h3><p>Es <em>schema-driven</em>: descubre el plan introspeccionando el esquema destino. Tú traes tu DDL; funciona con cualquier esquema.</p></div>
+      <div class="card"><span class="ic">✅</span><h3>Integridad verificable</h3><p>Valida conteos, sumas numéricas exactas, rango de PK y <strong>paridad de strings byte a byte</strong> (detecta <em>mojibake</em> y truncamiento).</p></div>
+      <div class="card"><span class="ic">🔑</span><h3>PK preservados 1:1</h3><p>Inserta los identificadores con su valor original y re-sincroniza las secuencias para que la app siga sin colisiones.</p></div>
+      <div class="card"><span class="ic">📦</span><h3>Escaping seguro</h3><p>Usa el protocolo <strong>COPY</strong> de psycopg: texto libre y blobs JSON viajan intactos, verificado con round-trip byte a byte.</p></div>
+      <div class="card"><span class="ic">⏱️</span><h3>Cronómetro incorporado</h3><p>Tiempo por etapa y por tabla, con un “RESUMEN DE TIEMPOS” al final de cada corrida.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Cómo funciona</h2>
+    <p class="section-sub">Una sola CLI (<code>migrate.py</code>) orquesta tres etapas.</p>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><div><strong><code>--schema</code> — crea el esquema</strong><p>Crea la base PostgreSQL (locale ICU) y aplica <strong>tu DDL</strong> (<code>00..03.sql</code>) vía psycopg.</p></div></div>
+      <div class="step"><div class="n">2</div><div><strong><code>--data</code> — copia los datos</strong><p>Copia MSSQL→PG con <strong>COPY</strong>, preservando PK, con las FK deshabilitadas durante la carga, y re-sincroniza las secuencias.</p></div></div>
+      <div class="step"><div class="n">3</div><div><strong><code>--validate</code> — verifica</strong><p>Compara origen vs destino (conteos, sumas, rango de PK, paridad de strings) y sale con <code>0</code> (íntegra) o <code>1</code> (falla).</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="empezar">
+  <div class="wrap">
+    <h2>Empezar en 3 pasos</h2>
+    <p class="section-sub">Desde la carpeta <code>migration/</code> del repo.</p>
+<pre><span class="c"># 1) entorno + dependencias</span>
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+<span class="c"># 2) configuracion: credenciales de origen/destino + DDL_DIR</span>
+cp .env.example .env        <span class="c"># edita el .env</span>
+
+<span class="c"># 3) verifica prerrequisitos y migra</span>
+.venv/bin/python check_requirements.py --connect
+.venv/bin/python migrate.py --all      <span class="c"># esquema + datos + validacion</span>
+</pre>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Tú traes el DDL</h2>
+    <p class="section-sub">El toolkit no incluye ningún esquema. Apunta <code>DDL_DIR</code> a una carpeta con estos cuatro archivos, que se aplican en orden:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Archivo</th><th>Contenido</th></tr></thead>
+        <tbody>
+          <tr><td><code>00_init.sql</code></td><td>Inicialización previa (extensiones, colaciones, tipos). Puede ir vacío.</td></tr>
+          <tr><td><code>01_schema.sql</code></td><td>Tablas base (columnas identity como <code>GENERATED BY DEFAULT AS IDENTITY</code> para preservar PK).</td></tr>
+          <tr><td><code>02_constraints_indexes.sql</code></td><td>PK / FK / índices / constraints.</td></tr>
+          <tr><td><code>03_views.sql</code></td><td>Vistas (no llevan datos; quedan fuera de la validación).</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Licencia <a href="https://github.com/neyron1002/python_mssql_pg_migrator/blob/main/LICENSE">MIT</a> · úsalo y modifícalo libremente.</span>
+    <a class="btn btn-ghost" href="https://github.com/neyron1002/python_mssql_pg_migrator">Ver el repositorio →</a>
+  </div>
+</footer>
+
+</body>
+</html>

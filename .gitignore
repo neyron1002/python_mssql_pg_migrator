@@ -11,6 +11,12 @@ __pycache__/
 # Salidas de la migración
 migration/out/
 
+# Contenido específico de una base concreta (este toolkit es agnóstico):
+# el DDL de tu base y los informes internos NO se versionan en el repo público.
+# Provee tu propio DDL vía DDL_DIR (ver README).
+postgres/
+docs/
+
 # macOS / editores
 .DS_Store
 *.swp
